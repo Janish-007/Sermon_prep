@@ -2,7 +2,6 @@
 name = "ark-ai"
 version = "0.1.0"
 description = ""
-authors = ["sharulatha <sharulatha062001@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

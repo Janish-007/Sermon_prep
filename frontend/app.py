@@ -9,6 +9,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 SERMON_HISTORY_FILE = DATA_DIR / "sermon_history.json"
 
+DENOMINATION_OPTIONS = [
+    "General Christian",
+    "Pentecostal / Charismatic",
+    "Baptist / Evangelical",
+    "Reformed",
+    "Methodist / Wesleyan",
+    "Lutheran",
+    "Anglican",
+    "Catholic",
+    "Orthodox",
+    "Non-denominational",
+]
+
 # =====================================================================
 # 1. PAGE INITIALIZATION & CONFIGURATION
 # =====================================================================
@@ -477,6 +490,7 @@ def generate_sermon_pdf(sermon_data):
     pdf.set_font('helvetica', '', 10)
     pdf.set_text_color(203, 213, 225)
     pdf.cell(0, 5, f"Style: {sermon_data.get('style', 'Theological')}   |   Duration: {sermon_data.get('duration', '30m')}   |   Audience: {sermon_data.get('audience', 'General')}", 0, 1, 'L')
+    pdf.cell(0, 5, f"Denomination: {sermon_data.get('denomination', 'General Christian')}", 0, 1, 'L')
     
     # Rest of document layout
     pdf.set_xy(10, 75)
@@ -643,6 +657,13 @@ with st.sidebar:
         height=120,
         help="Type in a biblical topic, a scripture passage, or a message theme."
     )
+
+    live_denomination = st.selectbox(
+        "Denomination Category",
+        options=DENOMINATION_OPTIONS,
+        index=0,
+        help="Shapes theological emphasis, vocabulary, illustrations, and ministry application."
+    )
     
     # Hidden advanced options
     with st.expander("⚙️ Advanced Settings"):
@@ -668,22 +689,6 @@ with st.sidebar:
             format_func=lambda x: "English" if x == "en" else "Tamil",
             index=0
         )
-        local_api_url = st.text_input(
-            "FastAPI Endpoint", 
-            value=local_api_url,
-            help="URL to your running FastAPI sermon assistant endpoint."
-        )
-        
-        # Test backend connection inside Advanced expander
-        try:
-            test_resp = requests.get(local_api_url.rsplit('/', 2)[0] + "/", timeout=1.5)
-            if test_resp.status_code == 200:
-                st.success("🟢 Connected to FastAPI Server")
-            else:
-                st.warning(f"🟡 Backend Status Code: {test_resp.status_code}")
-        except Exception:
-            st.error("🔴 Backend Server Offline")
-            st.caption("💡 Run uvicorn on port 8000 to enable custom generations!")
 
     st.write("")
     
@@ -697,6 +702,7 @@ with st.sidebar:
                     "style": live_style,
                     "duration": live_dur,
                     "audience": live_aud,
+                    "denomination": live_denomination,
                     "lang": live_lang
                 }
                 
@@ -711,6 +717,9 @@ with st.sidebar:
                         st.session_state.history.append({
                             "title": api_out.get("title", live_topic),
                             "style": live_style,
+                            "duration": api_out.get("duration", live_dur),
+                            "audience": api_out.get("audience", live_aud),
+                            "denomination": api_out.get("denomination", live_denomination),
                             "raw_markdown": api_out.get("raw_markdown", ""),
                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
@@ -734,6 +743,9 @@ with st.sidebar:
                 if st.button(f"📖 {hist['title'][:25]}...", key=f"hist_{idx}", use_container_width=True):
                     parsed = parse_sermon_markdown(hist['raw_markdown'])
                     parsed['style'] = hist.get('style', 'Theological')
+                    parsed['duration'] = hist.get('duration', '30 mins')
+                    parsed['audience'] = hist.get('audience', 'General Congregation')
+                    parsed['denomination'] = hist.get('denomination', 'General Christian')
                     parsed['raw_markdown'] = hist['raw_markdown']
                     
                     st.session_state.active_sermon = parsed
@@ -801,14 +813,14 @@ else:
     # Header Card
     st.markdown(f"""
     <div class="dashboard-header-card">
-        <div class="dashboard-category">{sermon.get('style', 'General')} Study  •  {sermon.get('duration', '30m')}  •  {sermon.get('audience', 'General')}</div>
+        <div class="dashboard-category">{sermon.get('style', 'General')} Study  •  {sermon.get('duration', '30m')}  •  {sermon.get('audience', 'General')}  •  {sermon.get('denomination', 'General Christian')}</div>
         <h1 class="dashboard-title">{sermon["title"]}</h1>
         <p class="dashboard-subtitle"><strong>Core Theme:</strong> {sermon["theme"]}</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Quick metadata columns
-    stat1, stat2, stat3 = st.columns(3)
+    stat1, stat2, stat3, stat4 = st.columns(4)
     with stat1:
         st.markdown(f"""
         <div class="stat-card">
@@ -824,6 +836,13 @@ else:
         </div>
         """, unsafe_allow_html=True)
     with stat3:
+        st.markdown(f"""
+        <div class="stat-card">
+            <div class="stat-label">Denomination</div>
+            <div class="stat-value">{sermon.get('denomination', 'General Christian')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with stat4:
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-label">System Mode</div>
@@ -885,7 +904,7 @@ else:
         col_theme, col_notes = st.columns(2)
         with col_theme:
             st.info("### 🕊️ Preaching Direction")
-            st.write(f"This sermon is configured in an **{sermon.get('style', 'Pastoral')}** style, targeting an audience of **{sermon.get('audience', 'General')}** over **{sermon.get('duration', '30 mins')}**.")
+            st.write(f"This sermon is configured in an **{sermon.get('style', 'Pastoral')}** style for a **{sermon.get('denomination', 'General Christian')}** context, targeting an audience of **{sermon.get('audience', 'General')}** over **{sermon.get('duration', '30 mins')}**.")
             st.write("Our homiletical structures optimize for theological precision while leaving space for personal, pastoral applications.")
             
         with col_notes:
@@ -985,6 +1004,9 @@ else:
             st.session_state.editing_text = updated_text
             parsed_edits = parse_sermon_markdown(updated_text)
             parsed_edits['style'] = sermon.get('style', 'Pastoral')
+            parsed_edits['duration'] = sermon.get('duration', '30 mins')
+            parsed_edits['audience'] = sermon.get('audience', 'General Congregation')
+            parsed_edits['denomination'] = sermon.get('denomination', 'General Christian')
             parsed_edits['raw_markdown'] = updated_text
             
             st.session_state.active_sermon = parsed_edits
@@ -993,6 +1015,7 @@ else:
             for idx, hist in enumerate(st.session_state.history):
                 if hist['title'] == sermon['title']:
                     st.session_state.history[idx]['raw_markdown'] = updated_text
+                    st.session_state.history[idx]['denomination'] = sermon.get('denomination', 'General Christian')
                     save_history_to_file()
                     break
                     

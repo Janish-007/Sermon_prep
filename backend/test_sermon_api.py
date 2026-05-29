@@ -117,6 +117,7 @@ Icebreaker: Share a time you received an undeserved welcome.
             "style": "Pastoral",
             "duration": "30 mins",
             "audience": "General Congregation",
+            "denomination": "Pentecostal / Charismatic",
             "lang": "en"
         }
         
@@ -133,7 +134,15 @@ Icebreaker: Share a time you received an undeserved welcome.
         self.assertEqual(result["style"], "Pastoral")
         self.assertEqual(result["duration"], "30 mins")
         self.assertEqual(result["audience"], "General Congregation")
+        self.assertEqual(result["denomination"], "Pentecostal / Charismatic")
         self.assertEqual(len(result["scriptures"]), 2)
+
+        completion_payload = mock_post.call_args.kwargs["json"]
+        system_prompt = completion_payload["messages"][0]["content"]
+        user_prompt = completion_payload["messages"][1]["content"]
+        self.assertIn("Denomination Category: Pentecostal / Charismatic", system_prompt)
+        self.assertIn("Holy Spirit", system_prompt)
+        self.assertIn("Denomination: 'Pentecostal / Charismatic'", user_prompt)
 
     def test_sermon_prep_api_endpoint_validation_error(self):
         """3. Verify that sending invalid payloads triggers validation errors (422)."""

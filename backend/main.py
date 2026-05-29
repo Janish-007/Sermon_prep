@@ -81,6 +81,7 @@ class SermonInput(BaseModel):
     style: Optional[str] = "Pastoral"
     duration: Optional[str] = "30 mins"
     audience: Optional[str] = "General Congregation"
+    denomination: Optional[str] = "General Christian"
     lang: Optional[str] = "en"
 
 LANGUAGE_MAP = {
@@ -89,6 +90,52 @@ LANGUAGE_MAP = {
     "tamil": "Tamil",
     "english": "English"
 }
+
+DENOMINATION_GUIDANCE = {
+    "General Christian": (
+        "Use broadly orthodox Christian language that is accessible across traditions. "
+        "Avoid distinctives that belong strongly to one denomination unless the passage requires it."
+    ),
+    "Pentecostal / Charismatic": (
+        "Emphasize the active work of the Holy Spirit, prayer, spiritual gifts, witness, and responsive altar ministry, "
+        "while staying biblically grounded and pastorally balanced."
+    ),
+    "Baptist / Evangelical": (
+        "Emphasize biblical authority, personal faith in Christ, discipleship, evangelism, conversion, and congregational application."
+    ),
+    "Reformed": (
+        "Emphasize God's sovereignty, grace, covenant themes, Christ-centered exposition, and careful doctrinal clarity."
+    ),
+    "Methodist / Wesleyan": (
+        "Emphasize prevenient grace, holiness, sanctification, mission, personal transformation, and practical discipleship."
+    ),
+    "Lutheran": (
+        "Emphasize law and gospel, justification by faith, Christ's finished work, grace, vocation, and sacramental sensitivity."
+    ),
+    "Anglican": (
+        "Emphasize Scripture, tradition, reason, liturgical awareness, pastoral formation, and reverent application."
+    ),
+    "Catholic": (
+        "Emphasize Scripture in harmony with Catholic teaching, sacramental life, virtue, Church tradition, and pastoral application. "
+        "Avoid presenting disputed Protestant distinctives as Catholic doctrine."
+    ),
+    "Orthodox": (
+        "Emphasize theosis, worship, mystery, patristic resonance, spiritual formation, and continuity with historic Christian faith."
+    ),
+    "Non-denominational": (
+        "Use accessible evangelical language with practical application, biblical exposition, and minimal denominational terminology."
+    ),
+}
+
+def get_denomination_guidance(denomination: Optional[str]) -> tuple[str, str]:
+    selected = (denomination or "General Christian").strip() or "General Christian"
+    guidance = DENOMINATION_GUIDANCE.get(selected)
+    if guidance:
+        return selected, guidance
+    return selected, (
+        f"Adapt the tone, theological emphases, illustrations, and pastoral applications for a {selected} church context. "
+        "Stay within historic orthodox Christian teaching and avoid overstating denominational claims."
+    )
 
 # Parse promises utility
 def parse_promises(promise_text):
@@ -332,6 +379,7 @@ def parse_sermon_markdown(text: str) -> dict:
 def generate_sermon_pack(payload: SermonInput) -> dict:
     """Uses Gloo Ingestion RAG and completions to draft a full sermon preparation package."""
     full_lang = LANGUAGE_MAP.get(payload.lang.lower(), "English")
+    denomination, denomination_guidance = get_denomination_guidance(payload.denomination)
     url = f"{GLOO_BASE_URL}/ai/v2/chat/completions"
     headers = {
         "Authorization": f"Bearer {get_gloo_token()}",
@@ -372,7 +420,11 @@ def generate_sermon_pack(payload: SermonInput) -> dict:
         f"- Preaching Style: {payload.style} (Pastoral, Expository, Narrative, Theological, or Evangelistic)\n"
         f"- Duration: {payload.duration}\n"
         f"- Target Audience: {payload.audience}\n\n"
-        f"Draft this pack with depth, theological integrity, and engaging pulpit relevance. Do not use placeholders.\n\n"
+        f"- Denomination Category: {denomination}\n"
+        f"- Denomination Guidance: {denomination_guidance}\n\n"
+        f"Draft this pack with depth, theological integrity, and engaging pulpit relevance. "
+        f"Let the denomination category shape theological emphases, vocabulary, applications, illustrations, and ministry practices, "
+        f"but do not turn the sermon into a denominational comparison or critique. Do not use placeholders.\n\n"
         f"--- \n"
         f"# TITLE: [Compelling Sermon Title]\n"
         f"# MAIN SCRIPTURE: [Primary Reference, e.g. Philippians 4:4-9]\n"
@@ -402,7 +454,7 @@ def generate_sermon_pack(payload: SermonInput) -> dict:
             {"role": "system", "content": system_message},
             {
                 "role": "user", 
-                "content": f"Please build a full-depth, custom sermon preparation pack on: Topic: '{payload.topic}', Scripture: '{payload.scripture if payload.scripture else 'Various'}', Style: '{payload.style}', Duration: '{payload.duration}', Audience: '{payload.audience}' in {full_lang}."
+                "content": f"Please build a full-depth, custom sermon preparation pack on: Topic: '{payload.topic}', Scripture: '{payload.scripture if payload.scripture else 'Various'}', Style: '{payload.style}', Duration: '{payload.duration}', Audience: '{payload.audience}', Denomination: '{denomination}' in {full_lang}."
             }
         ],
         "temperature": 0.7,
@@ -424,6 +476,7 @@ def generate_sermon_pack(payload: SermonInput) -> dict:
     parsed["style"] = payload.style
     parsed["duration"] = payload.duration
     parsed["audience"] = payload.audience
+    parsed["denomination"] = denomination
     
     return parsed
 
@@ -446,7 +499,10 @@ async def prayer_ai(request: Request, payload: QueryInput):
 @app.post("/sermonai-api/ark-ai")
 async def sermon_prep_ai(request: Request, payload: SermonInput):
     request_id = set_request_id(request.headers.get("x-request-id"))
-    logger.info(f"Received Sermon Prep AI Request for topic: {payload.topic}, scripture: {payload.scripture}")
+    logger.info(
+        f"Received Sermon Prep AI Request for topic: {payload.topic}, "
+        f"scripture: {payload.scripture}, denomination: {payload.denomination}"
+    )
     try:
         result = generate_sermon_pack(payload)
         return {"request_id": request_id, "result": result}

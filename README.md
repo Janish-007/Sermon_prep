@@ -43,6 +43,8 @@ The sermon generation endpoint is:
 POST http://127.0.0.1:8000/sermonai-api/ark-ai
 ```
 
+Supported sermon payload fields include `topic`, `scripture`, `style`, `duration`, `audience`, `denomination`, and `lang`. The `denomination` field defaults to `General Christian` and can be used to shape theological emphasis and pastoral application.
+
 ## Frontend
 
 Start the Streamlit app from the project root:
