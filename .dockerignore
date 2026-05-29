@@ -1,0 +1,20 @@
+# Ignore virtual environment
+venv/
+.venv/
+
+# Ignore local environment variables
+.env
+
+# Ignore large data files
+*.csv
+English_bible.csv
+tamil_bible.csv
+
+# Ignore test and ingestion scripts
+test_gloo.py
+bible_indexer.py
+
+# Ignore python cache
+__pycache__/
+*.pyc
+*.pyo

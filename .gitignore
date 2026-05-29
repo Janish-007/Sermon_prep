@@ -1,0 +1,9 @@
+# Ignore virtual environments
+venv/
+
+# Ignore local environment variables (already ignored in root, but good to be explicit here)
+.env
+
+# Ignore compiled python files
+__pycache__/
+*.pyc
