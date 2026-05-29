@@ -1,57 +1,75 @@
 # SermonForge AI ⛪
 
-> **A Premium, Decoupled Sermon Preparation Studio Integrated on Gloo Native RAG**
-> 
-> *The pastor brings the anointing and the personalized message — SermonForge AI handles the structural groundwork and scriptural research so you can focus on spiritual depth.*
+> A decoupled sermon preparation studio with a Streamlit frontend and FastAPI backend powered by Gloo Native RAG.
 
----
-
-SermonForge AI has been reorganized into a **decoupled folder architecture** with clear separation between concerns:
-
-- **`backend/`**: Consolidates all FastAPI server code, Gloo vector database RAG indexes, prompt routing systems, markdown parser logic, and unit testing suites.
-- **`frontend/`**: Created and kept **empty** as of now, reserved for future frontend implementations.
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```
 Sermon_prep/
 ├── backend/
-│   ├── main.py                  # FastAPI Backend API Server
-│   ├── app_logger.py            # UUID Traced Logging (Console & Loki)
-│   ├── bible_indexer.py         # Scriptural CSV Vector Uploader
-│   ├── test_sermon_api.py       # Comprehensive Unit Testing Suite
-│   └── pyproject.toml           # Poetry Configuration
+│   ├── __init__.py
+│   ├── main.py                  # FastAPI backend API server
+│   ├── app_logger.py            # UUID-traced logging
+│   ├── bible_indexer.py         # Scriptural CSV vector uploader
+│   ├── requirements.txt         # pip dependency list
+│   └── test_sermon_api.py       # backend test suite
+├── data/
+│   └── sermon_history.json      # local Streamlit sermon history
 ├── frontend/
-│   └── .gitkeep                 # Folder placeholder (kept empty)
-└── README.md                    # Main Project Directory Guidelines
+│   └── app.py                   # Streamlit sermon prep studio
+├── Dockerfile                   # backend container image
+├── pyproject.toml               # Poetry project configuration
+├── poetry.lock                  # Poetry lockfile
+└── README.md
 ```
 
----
+## Backend
 
-## 🚀 Backend Launch & Setup Guide
+Install dependencies from the project root:
 
-Open your command-line terminal, navigate to the **`backend`** directory, and run the following:
-
-### Step 1: Install Dependencies
 ```bash
-cd backend
 poetry install
 ```
-*(If you are not using Poetry, run `pip install fastapi uvicorn requests python-dotenv`)*
 
-### Step 2: Start the FastAPI Backend Server
-Start the Uvicorn web server on port `8000`:
+Start the FastAPI server:
+
 ```bash
-poetry run uvicorn main:app --reload --port 8000
+poetry run uvicorn backend.main:app --reload --port 8000
 ```
-- The backend API server is now running on `http://127.0.0.1:8000`.
-- The main sermon preparation generation RAG endpoint is exposed at: `POST http://127.0.0.1:8000/sermonai-api/ark-ai`
 
-### Step 3: Run the Test Suite
-Confirm the endpoint, Pydantic inputs, and markdown parsers are fully functional by running the test suite:
+The sermon generation endpoint is:
+
+```text
+POST http://127.0.0.1:8000/sermonai-api/ark-ai
+```
+
+## Frontend
+
+Start the Streamlit app from the project root:
+
 ```bash
+poetry run streamlit run frontend/app.py
+```
+
+Saved sermon history is stored in `data/sermon_history.json`.
+
+## Tests
+
+Run the backend test suite:
+
+```bash
+cd backend
 poetry run python test_sermon_api.py
 ```
-*(You can also run tests without Poetry by executing `..\venv\Scripts\python test_sermon_api.py` from the `backend/` folder)*
+
+## Environment
+
+Create `backend/.env` with the required Gloo credentials:
+
+```text
+GLOO_CLIENT_ID=...
+GLOO_CLIENT_SECRET=...
+GLOO_PUBLISHER_ID=...
+GLOO_TENANT_NAME=...
+GLOO_COLLECTION=...
+```

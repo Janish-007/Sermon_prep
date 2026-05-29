@@ -2,8 +2,12 @@ import streamlit as st
 import requests
 import re
 import json
-import os
 from datetime import datetime
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+SERMON_HISTORY_FILE = DATA_DIR / "sermon_history.json"
 
 # =====================================================================
 # 1. PAGE INITIALIZATION & CONFIGURATION
@@ -20,8 +24,8 @@ if 'active_sermon' not in st.session_state:
     st.session_state.active_sermon = None
 if 'history' not in st.session_state:
     try:
-        if os.path.exists("sermon_history.json"):
-            with open("sermon_history.json", "r", encoding="utf-8") as f:
+        if SERMON_HISTORY_FILE.exists():
+            with SERMON_HISTORY_FILE.open("r", encoding="utf-8") as f:
                 st.session_state.history = json.load(f)
         else:
             st.session_state.history = []
@@ -33,7 +37,8 @@ if 'editing_text' not in st.session_state:
 # Helper to save history persistently
 def save_history_to_file():
     try:
-        with open("sermon_history.json", "w", encoding="utf-8") as f:
+        DATA_DIR.mkdir(exist_ok=True)
+        with SERMON_HISTORY_FILE.open("w", encoding="utf-8") as f:
             json.dump(st.session_state.history, f, indent=4, ensure_ascii=False)
     except Exception:
         pass

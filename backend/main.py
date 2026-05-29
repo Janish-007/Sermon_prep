@@ -9,7 +9,12 @@ import time
 from dotenv import load_dotenv
 
 # Import logger utilities
-from app_logger import get_logger, set_request_id
+try:
+    from .app_logger import get_logger, set_request_id
+except ImportError:
+    if __package__:
+        raise
+    from app_logger import get_logger, set_request_id
 
 # Load environment variables
 load_dotenv()

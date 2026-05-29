@@ -16,7 +16,7 @@ RUN poetry install --no-root
 
 
 
-# Copy the application code and logger file to the container
+# Copy the application code
 COPY . /app
 
 # Set up logger file
@@ -26,4 +26,4 @@ RUN mkdir /app/logs
 EXPOSE 8000
 
 # Start FastAPI application with uvicorn
-CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
