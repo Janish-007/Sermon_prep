@@ -161,7 +161,48 @@ Icebreaker: Share a time you received an undeserved welcome.
         missing_fields = [err["loc"][1] for err in errors]
         self.assertIn("topic", missing_fields)
 
+    @patch("main.get_gloo_token")
+    @patch("main.requests.post")
+    def test_sermon_copilot_api_endpoint_success(self, mock_post, mock_token):
+        """4. Verify that the /sermonai-api/copilot POST endpoint handles messages successfully and extracts updated markdown."""
+        mock_token.return_value = "mock_gloo_oauth_token"
+        
+        mock_gloo_resp = MagicMock()
+        mock_gloo_resp.status_code = 200
+        mock_gloo_resp.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "Sure, I have updated the sermon pack outline. [UPDATED_SERMON_PACK]\n# TITLE: Updated Title\n# MAIN SCRIPTURE: John 3:16\n# MEMORY VERSE: \"For God so loved...\" — John 3:16\n# CORE THEME: The love of God.\n## SECTION: OUTLINE\n### I. Point One\n## SECTION: SCRIPTURES\n## SECTION: ILLUSTRATIONS\n## SECTION: DISCUSSION QUESTIONS\n## SECTION: TEACHING NOTES\n[/UPDATED_SERMON_PACK]"
+                    }
+                }
+            ]
+        }
+        mock_post.return_value = mock_gloo_resp
+        
+        payload = {
+            "messages": [
+                {"role": "user", "content": "Update the outline title and add scripture references"}
+            ],
+            "active_sermon_markdown": "existing markdown text",
+            "denomination": "General Christian",
+            "style": "Pastoral",
+            "lang": "en"
+        }
+        
+        response = self.client.post("/sermonai-api/copilot", json=payload)
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("request_id", data)
+        self.assertIn("result", data)
+        
+        result = data["result"]
+        self.assertEqual(result["chat_response"], "Sure, I have updated the sermon pack outline.")
+        self.assertEqual(result["updated_sermon"], "# TITLE: Updated Title\n# MAIN SCRIPTURE: John 3:16\n# MEMORY VERSE: \"For God so loved...\" — John 3:16\n# CORE THEME: The love of God.\n## SECTION: OUTLINE\n### I. Point One\n## SECTION: SCRIPTURES\n## SECTION: ILLUSTRATIONS\n## SECTION: DISCUSSION QUESTIONS\n## SECTION: TEACHING NOTES")
+
 
 if __name__ == "__main__":
     print("⛪ Launching SermonForge AI Prep Studio Test Cases...")
     unittest.main()
+

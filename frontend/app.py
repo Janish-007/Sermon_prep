@@ -46,6 +46,10 @@ if 'history' not in st.session_state:
         st.session_state.history = []
 if 'editing_text' not in st.session_state:
     st.session_state.editing_text = ""
+if 'copilot_messages' not in st.session_state:
+    st.session_state.copilot_messages = []
+if 'pending_sermon_update' not in st.session_state:
+    st.session_state.pending_sermon_update = None
 
 # Helper to save history persistently
 def save_history_to_file():
@@ -55,6 +59,14 @@ def save_history_to_file():
             json.dump(st.session_state.history, f, indent=4, ensure_ascii=False)
     except Exception:
         pass
+
+def save_copilot_chat_to_history():
+    if st.session_state.active_sermon and st.session_state.history:
+        for idx, hist in enumerate(st.session_state.history):
+            if hist['title'] == st.session_state.active_sermon['title']:
+                st.session_state.history[idx]['copilot_messages'] = st.session_state.copilot_messages
+                save_history_to_file()
+                break
 
 # =====================================================================
 # 2. PREMIUM CSS INJECTION (GLOO INSPIRED FAITH-AESTHETIC)
@@ -712,6 +724,8 @@ with st.sidebar:
                         api_out = response.json().get("result", {})
                         st.session_state.active_sermon = api_out
                         st.session_state.editing_text = api_out.get("raw_markdown", "")
+                        st.session_state.copilot_messages = []
+                        st.session_state.pending_sermon_update = None
                         
                         # Add to history
                         st.session_state.history.append({
@@ -721,7 +735,8 @@ with st.sidebar:
                             "audience": api_out.get("audience", live_aud),
                             "denomination": api_out.get("denomination", live_denomination),
                             "raw_markdown": api_out.get("raw_markdown", ""),
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "copilot_messages": []
                         })
                         save_history_to_file()
                         st.success("Sermon Prep Pack Constructed Successfully!")
@@ -750,6 +765,8 @@ with st.sidebar:
                     
                     st.session_state.active_sermon = parsed
                     st.session_state.editing_text = hist['raw_markdown']
+                    st.session_state.copilot_messages = hist.get('copilot_messages', [])
+                    st.session_state.pending_sermon_update = None
                     st.success(f"Restored: {parsed['title']}")
                     st.rerun()
             with del_col:
@@ -882,13 +899,14 @@ else:
     st.write("")
 
     # Tab Container
-    tab_overview, tab_outline, tab_scripture, tab_illustrations, tab_group, tab_editor = st.tabs([
+    tab_overview, tab_outline, tab_scripture, tab_illustrations, tab_group, tab_editor, tab_copilot = st.tabs([
         "📋 Overview", 
         "📝 Homiletical Outline", 
         "📖 Scripture Vault", 
         "💡 Pulpit Illustrations", 
         "👥 Small Group Pack", 
-        "✍️ Manuscript & Workspace"
+        "✍️ Manuscript & Workspace",
+        "💬 Sermon AI Copilot"
     ])
     
     # 1. OVERVIEW TAB
@@ -1023,3 +1041,116 @@ else:
             st.rerun()
             
         st.caption("💡 **Tip:** Standard Markdown syntax is fully supported. Use `#` for major headings, `*` for bullet points, and `**` for bold highlights.")
+
+    # 7. WORKSPACE COPILOT TAB
+    with tab_copilot:
+        st.subheader("💬 Sermon AI Copilot")
+        st.caption("Brainstorm ideas, add illustrations, ask theological questions, or direct the AI to rewrite sections of your sermon.")
+        
+        copilot_api_url = "http://127.0.0.1:8000/sermonai-api/copilot"
+
+        # Check if we have a pending sermon pack update suggested by the Copilot
+        if st.session_state.pending_sermon_update:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #16a34a; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);">
+                <h4 style="color: #14532d; margin: 0 0 0.5rem 0; font-family: 'Outfit', sans-serif;">✨ Copilot Suggested a Sermon Update!</h4>
+                <p style="color: #166534; font-size: 0.95rem; margin-bottom: 1rem;">
+                    The Copilot has generated an adjusted draft based on your request. You can preview this outline revision or apply it to replace your active study workspace.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            up_col1, up_col2 = st.columns(2)
+            with up_col1:
+                if st.button("🚀 Apply Copilot Refinements", use_container_width=True):
+                    # Apply changes to active workspace
+                    new_markdown = st.session_state.pending_sermon_update
+                    parsed_update = parse_sermon_markdown(new_markdown)
+                    parsed_update['style'] = sermon.get('style', 'Pastoral')
+                    parsed_update['duration'] = sermon.get('duration', '30 mins')
+                    parsed_update['audience'] = sermon.get('audience', 'General Congregation')
+                    parsed_update['denomination'] = sermon.get('denomination', 'General Christian')
+                    parsed_update['raw_markdown'] = new_markdown
+                    
+                    st.session_state.active_sermon = parsed_update
+                    st.session_state.editing_text = new_markdown
+                    
+                    # Update active history record
+                    for idx, hist in enumerate(st.session_state.history):
+                        if hist['title'] == sermon['title']:
+                            st.session_state.history[idx]['raw_markdown'] = new_markdown
+                            break
+                    
+                    st.session_state.pending_sermon_update = None
+                    save_history_to_file()
+                    st.success("Sermon Workspace and tabs updated successfully with Copilot adjustments!")
+                    st.rerun()
+            with up_col2:
+                if st.button("❌ Discard Draft", use_container_width=True):
+                    st.session_state.pending_sermon_update = None
+                    st.toast("Discarded copilot's revised sermon draft.")
+                    st.rerun()
+            st.divider()
+
+        # Display Chat History
+        chat_container = st.container()
+        with chat_container:
+            if st.session_state.copilot_messages:
+                for msg in st.session_state.copilot_messages:
+                    with st.chat_message(msg["role"]):
+                        st.markdown(msg["content"])
+            else:
+                st.markdown(f"""
+                <div style="text-align: center; color: #64748b; padding: 3rem 1rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">💬</div>
+                    <h5>SermonForge Homiletical Dialogue</h5>
+                    <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">
+                        Ask your homiletical copilot to brainstorm alternative hooks, suggest scripture references, draft detailed leader guides, or edit the active outline!
+                    </p>
+                    <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
+                        <span style="background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid #e2e8f0; color: #475569;">"Suggest a story illustration about forgiveness"</span>
+                        <span style="background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid #e2e8f0; color: #475569;">"Make outline point II more expository"</span>
+                        <span style="background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid #e2e8f0; color: #475569;">"Add scripture cross-references for Romans 8"</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Chat Input at the bottom
+        if user_prompt := st.chat_input("Tell Copilot how to refine your sermon..."):
+            # Append User message to local state
+            st.session_state.copilot_messages.append({"role": "user", "content": user_prompt})
+            save_copilot_chat_to_history()
+            
+            with st.chat_message("user"):
+                st.markdown(user_prompt)
+                
+            # Call Copilot API
+            with st.spinner("Copilot is drafting homiletical insights..."):
+                payload = {
+                    "messages": st.session_state.copilot_messages,
+                    "active_sermon_markdown": st.session_state.editing_text,
+                    "denomination": sermon.get('denomination', 'General Christian'),
+                    "style": sermon.get('style', 'Pastoral'),
+                    "lang": live_lang if 'live_lang' in locals() else 'en'
+                }
+                
+                try:
+                    copilot_response = requests.post(copilot_api_url, json=payload, timeout=50)
+                    if copilot_response.status_code == 200:
+                        res_data = copilot_response.json().get("result", {})
+                        bot_response = res_data.get("chat_response", "")
+                        updated_sermon_md = res_data.get("updated_sermon")
+                        
+                        # Append Assistant message to state
+                        st.session_state.copilot_messages.append({"role": "assistant", "content": bot_response})
+                        
+                        if updated_sermon_md:
+                            st.session_state.pending_sermon_update = updated_sermon_md
+                            
+                        save_copilot_chat_to_history()
+                        st.rerun()
+                    else:
+                        st.error(f"Copilot API Error ({copilot_response.status_code}): {copilot_response.text}")
+                except Exception as ex:
+                    st.error(f"Failed to communicate with Copilot backend: {str(ex)}")
+

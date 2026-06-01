@@ -84,6 +84,18 @@ class SermonInput(BaseModel):
     denomination: Optional[str] = "General Christian"
     lang: Optional[str] = "en"
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class CopilotInput(BaseModel):
+    messages: List[ChatMessage]
+    active_sermon_markdown: Optional[str] = None
+    denomination: Optional[str] = "General Christian"
+    style: Optional[str] = "Pastoral"
+    lang: Optional[str] = "en"
+
+
 LANGUAGE_MAP = {
     "en": "English",
     "ta": "Tamil",
@@ -509,3 +521,107 @@ async def sermon_prep_ai(request: Request, payload: SermonInput):
     except Exception as e:
         logger.exception(f"Error in Sermon Prep AI: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+def generate_copilot_response(payload: CopilotInput) -> dict:
+    """Uses Gloo Chat Completions with conversation history and active sermon pack context to refine it dynamically."""
+    full_lang = LANGUAGE_MAP.get(payload.lang.lower(), "English")
+    denomination, denomination_guidance = get_denomination_guidance(payload.denomination)
+    url = f"{GLOO_BASE_URL}/ai/v2/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {get_gloo_token()}",
+        "Content-Type": "application/json"
+    }
+
+    # Construct Copilot instructions
+    system_message = (
+        f"You are the SermonForge Homiletical Copilot—a highly respected homiletics professor, encouraging mentor, and caring pastor. "
+        f"You are assisting a pastor in {full_lang} to interactively brainstorm, refine, expand, and polish their sermon preparation package.\n\n"
+        f"Current Sermon Settings:\n"
+        f"- Preaching Style: {payload.style}\n"
+        f"- Denomination Category: {denomination}\n"
+        f"- Denomination Guidance: {denomination_guidance}\n\n"
+    )
+
+    if payload.active_sermon_markdown:
+        system_message += (
+            f"Here is the active Sermon Pack markdown currently in the pastor's workspace:\n"
+            f"--- START ACTIVE SERMON PACK ---\n"
+            f"{payload.active_sermon_markdown}\n"
+            f"--- END ACTIVE SERMON PACK ---\n\n"
+        )
+    else:
+        system_message += "There is currently no active sermon pack loaded in the workspace. You are helping them start from scratch or brainstorm ideas.\n\n"
+
+    system_message += (
+        f"Your task is to engage in a helpful, conversational dialogue with the pastor. Answer their questions, "
+        f"provide alternative ideas, flesh out theological points, suggest illustrations, or write group discussion guides.\n\n"
+        f"CRITICAL WORKSPACE DRAFT INSTRUCTION:\n"
+        f"If the pastor asks you to modify, rewrite, expand, or adjust any part of the active sermon pack, or if you suggest a concrete updated sermon draft, "
+        f"you MUST provide the completely revised, full-depth Sermon Pack markdown inside your response. "
+        f"You MUST wrap the complete updated sermon pack markdown block EXACTLY between '[UPDATED_SERMON_PACK]' and '[/UPDATED_SERMON_PACK]' tags.\n"
+        f"Inside these tags, you must use the standard structural tags for the sermon pack:\n"
+        f"# TITLE: [Compelling Sermon Title]\n"
+        f"# MAIN SCRIPTURE: [Primary Reference]\n"
+        f"# MEMORY VERSE: \"[Memory Verse]\" — [Reference]\n"
+        f"# CORE THEME: [1-2 sentences]\n"
+        f"## SECTION: OUTLINE\n..."
+        f"## SECTION: SCRIPTURES\n..."
+        f"## SECTION: ILLUSTRATIONS\n..."
+        f"## SECTION: DISCUSSION QUESTIONS\n..."
+        f"## SECTION: TEACHING NOTES\n...\n"
+        f"Do not omit any sections; provide the full, adjusted pack so the pastor can load it into their workspace.\n"
+        f"If the pastor's request is purely conversational (e.g. just asking a question without requesting changes to the active sermon), "
+        f"do NOT output the '[UPDATED_SERMON_PACK]' tags.\n\n"
+        f"Keep your conversational responses warm, pastorally supportive, and intellectually deep."
+    )
+
+    # Build chat completions messages payload
+    messages_payload = [{"role": "system", "content": system_message}]
+    for msg in payload.messages:
+        messages_payload.append({"role": msg.role, "content": msg.content})
+
+    payload_completions = {
+        "messages": messages_payload,
+        "temperature": 0.7,
+        "auto_routing": True
+    }
+
+    logger.info("Calling Gloo chat completions endpoint for Sermon Copilot...")
+    response = requests.post(url, headers=headers, json=payload_completions)
+
+    if response.status_code != 200:
+        logger.error(f"Gloo copilot completions error: {response.status_code} - {response.text}")
+        response.raise_for_status()
+
+    answer_text = response.json()["choices"][0]["message"]["content"].strip()
+    logger.info("Successfully received copilot response from Gloo AI completions.")
+
+    # Parse and extract updated sermon markdown if present
+    updated_sermon = None
+    chat_response = answer_text
+
+    # Support case-insensitive tag search
+    match = re.search(r'\[UPDATED_SERMON_PACK\](.*?)\[/UPDATED_SERMON_PACK\]', answer_text, re.DOTALL | re.IGNORECASE)
+    if match:
+        updated_sermon = match.group(1).strip()
+        # Strip the programmatic block from the chat bubble so the pastor doesn't see a wall of raw markdown in the chat bubble
+        chat_response = re.sub(r'\[UPDATED_SERMON_PACK\].*?\[/UPDATED_SERMON_PACK\]', '', answer_text, flags=re.DOTALL | re.IGNORECASE).strip()
+        if not chat_response:
+            chat_response = "I have updated the sermon pack according to your requests. You can click 'Apply Copilot Refinements' to update your workspace."
+
+    return {
+        "chat_response": chat_response,
+        "updated_sermon": updated_sermon
+    }
+
+@app.post("/sermonai-api/copilot")
+async def sermon_copilot(request: Request, payload: CopilotInput):
+    request_id = set_request_id(request.headers.get("x-request-id"))
+    logger.info(f"Received Sermon Copilot Request. Messages: {len(payload.messages)}")
+    try:
+        result = generate_copilot_response(payload)
+        return {"request_id": request_id, "result": result}
+    except Exception as e:
+        logger.exception(f"Error in Sermon Copilot: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
