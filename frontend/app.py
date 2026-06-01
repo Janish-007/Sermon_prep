@@ -477,7 +477,7 @@ def generate_sermon_pdf(sermon_data):
             self.line(10, self.get_y(), 200, self.get_y())
             self.set_font('helvetica', 'I', 8)
             self.set_text_color(100, 116, 139)
-            self.cell(0, 10, 'SermonForge AI  |  Prepared via Gloo Native RAG', 0, 0, 'L')
+            self.cell(0, 10, 'SermonForge AI  |  Sermon Preparation Pack', 0, 0, 'L')
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'R')
 
     pdf = SermonPDF(orientation='P', unit='mm', format='A4')
@@ -491,7 +491,7 @@ def generate_sermon_pdf(sermon_data):
     pdf.set_xy(15, 15)
     pdf.set_font('helvetica', 'B', 8)
     pdf.set_text_color(251, 191, 36)
-    pdf.cell(0, 5, 'SERMON PREPARATION PACK  |  GLOO NATIVE RAG', 0, 1, 'L')
+    pdf.cell(0, 5, 'SERMON PREPARATION PACK', 0, 1, 'L')
     
     pdf.ln(2)
     pdf.set_font('helvetica', 'B', 22)
@@ -538,7 +538,7 @@ def generate_sermon_pdf(sermon_data):
     pdf.ln(10)
     pdf.set_font('helvetica', 'B', 14)
     pdf.set_text_color(79, 70, 229)
-    pdf.cell(0, 8, 'I. HOMILETICAL SERMON OUTLINE', 0, 1, 'L')
+    pdf.cell(0, 8, 'I. SERMON OUTLINE', 0, 1, 'L')
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(5)
     
@@ -588,7 +588,7 @@ def generate_sermon_pdf(sermon_data):
     pdf.ln(5)
     pdf.set_font('helvetica', 'B', 14)
     pdf.set_text_color(79, 70, 229)
-    pdf.cell(0, 8, 'III. HOMILETICAL ILLUSTRATIONS', 0, 1, 'L')
+    pdf.cell(0, 8, 'III. SERMON ILLUSTRATIONS', 0, 1, 'L')
     pdf.line(15, pdf.get_y(), 195, pdf.get_y())
     pdf.ln(5)
     
@@ -652,7 +652,7 @@ with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand-container">
         <h1 class="sidebar-brand-title">SermonForge AI</h1>
-        <div class="sidebar-brand-subtitle">Gloo Native RAG Ecosystem</div>
+        <div class="sidebar-brand-subtitle">Sermon Preparation Studio</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -708,7 +708,7 @@ with st.sidebar:
         if not live_topic:
             st.error("Please enter a Topic or Theme to begin generation!")
         else:
-            with st.spinner("Connecting to Gloo AI RAG Backend... (Takes 10-15s)"):
+            with st.spinner("Preparing your sermon pack..."):
                 payload = {
                     "topic": live_topic,
                     "style": live_style,
@@ -739,13 +739,13 @@ with st.sidebar:
                             "copilot_messages": []
                         })
                         save_history_to_file()
-                        st.success("Sermon Prep Pack Constructed Successfully!")
+                        st.success("Sermon prep pack is ready!")
                         st.rerun()
                     else:
-                        st.error(f"Backend Server Error ({response.status_code}): {response.text}")
+                        st.error("We could not prepare the sermon pack right now. Please try again.")
                 except Exception as e:
-                    st.error(f"Failed to communicate with FastAPI backend server: {str(e)}")
-                    st.info("💡 Double check that your FastAPI uvicorn terminal is running and contains valid Gloo credentials in the `.env` file!")
+                    st.error("We could not reach the sermon preparation service.")
+                    st.info("💡 Please make sure the sermon service is running, then try again.")
 
     st.divider()
     
@@ -781,7 +781,7 @@ with st.sidebar:
 
 # --- Main App Layout ---
 st.title("⛪ SermonForge AI Prep Studio")
-st.caption("Integrated on Gloo Native RAG Platform to construct scripture-grounded sermon prep archives.")
+st.caption("Create scripture-grounded sermon outlines, illustrations, and group discussion guides.")
 st.divider()
 
 if st.session_state.active_sermon is None:
@@ -798,11 +798,11 @@ if st.session_state.active_sermon is None:
         <div class="stat-grid" style="margin-top: 2rem;">
             <div class="stat-card">
                 <div class="stat-label">✨ Rapid Outlines</div>
-                <div class="stat-value" style="font-size: 0.95rem; color: #4f46e5; margin-top:0.3rem;">Structured Homiletical Flow</div>
+                <div class="stat-value" style="font-size: 0.95rem; color: #4f46e5; margin-top:0.3rem;">Clear Sermon Flow</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">📖 Scripture Vault</div>
-                <div class="stat-value" style="font-size: 0.95rem; color: #4f46e5; margin-top:0.3rem;">Gloo Bible RAG Integration</div>
+                <div class="stat-value" style="font-size: 0.95rem; color: #4f46e5; margin-top:0.3rem;">Biblical Cross References</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">💡 Pulpit Stories</div>
@@ -814,9 +814,9 @@ if st.session_state.active_sermon is None:
             </div>
         </div>
         <div class="gloo-philosophy-card">
-            <strong>Gloo AI Ministry Philosophy:</strong> 
-            "The pastor brings the anointing and the personalized message — our AI handles the groundwork. 
-            We build tools that align with biblical truth and honor the spiritual weight of your office."
+            <strong>Ministry Preparation Philosophy:</strong> 
+            "The pastor brings the prayer, discernment, and personal message — this tool helps organize the groundwork. 
+            Use it as a companion for study, reflection, and faithful preparation."
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -862,8 +862,8 @@ else:
     with stat4:
         st.markdown(f"""
         <div class="stat-card">
-            <div class="stat-label">System Mode</div>
-            <div class="stat-value" style="color: #4f46e5;">Gloo Native RAG</div>
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="color: #4f46e5;">Ready</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -876,7 +876,7 @@ else:
     with act_col2:
         # Download raw markdown file
         st.download_button(
-            label="💾 Download Markdown (.md)",
+            label="💾 Download Editable Notes",
             data=st.session_state.editing_text,
             file_name=f"{sermon['title'].lower().replace(' ', '_')}_pack.md",
             mime="text/markdown",
@@ -894,16 +894,16 @@ else:
                 use_container_width=True
             )
         except Exception as pdf_ex:
-            st.button("⚠️ PDF Export Unavailable", disabled=True, use_container_width=True, help=f"PDF Error: {str(pdf_ex)}")
+            st.button("⚠️ Print PDF Unavailable", disabled=True, use_container_width=True, help="Please try again after reviewing your sermon notes.")
 
     st.write("")
 
     # Tab Container
     tab_overview, tab_outline, tab_scripture, tab_illustrations, tab_group, tab_editor, tab_copilot = st.tabs([
         "📋 Overview", 
-        "📝 Homiletical Outline", 
+        "📝 Sermon Outline", 
         "📖 Scripture Vault", 
-        "💡 Pulpit Illustrations", 
+        "💡 Sermon Illustrations", 
         "👥 Small Group Pack", 
         "✍️ Manuscript & Workspace",
         "💬 Sermon AI Copilot"
@@ -923,15 +923,15 @@ else:
         with col_theme:
             st.info("### 🕊️ Preaching Direction")
             st.write(f"This sermon is configured in an **{sermon.get('style', 'Pastoral')}** style for a **{sermon.get('denomination', 'General Christian')}** context, targeting an audience of **{sermon.get('audience', 'General')}** over **{sermon.get('duration', '30 mins')}**.")
-            st.write("Our homiletical structures optimize for theological precision while leaving space for personal, pastoral applications.")
+            st.write("The structure gives you a clear preaching path while leaving space for personal, pastoral application.")
             
         with col_notes:
-            st.success("### 🚀 Dynamic Activation")
+            st.success("### ✍️ Ready to Refine")
             st.write("All generated components are saved and available for editing in the workspace tab. Click the editor tab above to add personal study comments, direct manuscript notes, and tailored adjustments before exporting to PDF.")
 
     # 2. OUTLINE TAB
     with tab_outline:
-        st.subheader("Homiletical Outline")
+        st.subheader("Sermon Outline")
         st.caption("A logical, biblical structure designed for preaching flow. Edit these points in the workspace tab.")
         
         # Render outline
@@ -951,7 +951,7 @@ else:
     # 3. SCRIPTURE VAULT TAB
     with tab_scripture:
         st.subheader("Scripture Vault")
-        st.caption("Primary text and contextual cross-references for sermon depth, retrieved using Gloo vector search.")
+        st.caption("Primary text and related scripture passages for deeper study.")
         
         if sermon["scriptures"]:
             for scr in sermon["scriptures"]:
@@ -966,8 +966,8 @@ else:
 
     # 4. ILLUSTRATIONS TAB
     with tab_illustrations:
-        st.subheader("Homiletical Illustrations")
-        st.caption("Engaging, modern, or historical stories to connect the pulpit to the congregation's daily life.")
+        st.subheader("Sermon Illustrations")
+        st.caption("Engaging stories and examples to connect the message to daily life.")
         
         if sermon["illustrations"]:
             for ill in sermon["illustrations"]:
@@ -986,7 +986,7 @@ else:
 
     # 5. SMALL GROUP PACK TAB
     with tab_group:
-        st.subheader("Disciple small group Pack")
+        st.subheader("Small Group Pack")
         st.caption("Comprehensive discussion questions and leader notes to distribute to home fellowships.")
         
         st.markdown("### 💬 Discipleship Discussion Questions")
@@ -1011,10 +1011,10 @@ else:
         
         # Text Area Editor
         updated_text = st.text_area(
-            "Active Sermon Pack Markdown",
+            "Active Sermon Notes",
             value=st.session_state.editing_text,
             height=500,
-            help="Directly edit the markdown structure. Changes will be reflected in the Download and PDF output files."
+            help="Edit the sermon notes here. Changes will be reflected in the download and PDF files."
         )
         
         # Save edits
@@ -1040,7 +1040,7 @@ else:
             st.success("Sermon Workspace Updated and Saved Locally!")
             st.rerun()
             
-        st.caption("💡 **Tip:** Standard Markdown syntax is fully supported. Use `#` for major headings, `*` for bullet points, and `**` for bold highlights.")
+        st.caption("💡 **Tip:** You can add headings, bullet points, and bold highlights as you refine your notes.")
 
     # 7. WORKSPACE COPILOT TAB
     with tab_copilot:
@@ -1083,7 +1083,7 @@ else:
                     
                     st.session_state.pending_sermon_update = None
                     save_history_to_file()
-                    st.success("Sermon Workspace and tabs updated successfully with Copilot adjustments!")
+                    st.success("Sermon workspace updated with Copilot refinements!")
                     st.rerun()
             with up_col2:
                 if st.button("❌ Discard Draft", use_container_width=True):
@@ -1103,9 +1103,9 @@ else:
                 st.markdown(f"""
                 <div style="text-align: center; color: #64748b; padding: 3rem 1rem;">
                     <div style="font-size: 2.5rem; margin-bottom: 1rem;">💬</div>
-                    <h5>SermonForge Homiletical Dialogue</h5>
+                    <h5>SermonForge Conversation</h5>
                     <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto;">
-                        Ask your homiletical copilot to brainstorm alternative hooks, suggest scripture references, draft detailed leader guides, or edit the active outline!
+                        Ask your copilot to brainstorm opening ideas, suggest scripture references, draft leader guides, or refine the active outline.
                     </p>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
                         <span style="background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid #e2e8f0; color: #475569;">"Suggest a story illustration about forgiveness"</span>
@@ -1125,7 +1125,7 @@ else:
                 st.markdown(user_prompt)
                 
             # Call Copilot API
-            with st.spinner("Copilot is drafting homiletical insights..."):
+            with st.spinner("Copilot is preparing suggestions..."):
                 payload = {
                     "messages": st.session_state.copilot_messages,
                     "active_sermon_markdown": st.session_state.editing_text,
@@ -1150,7 +1150,6 @@ else:
                         save_copilot_chat_to_history()
                         st.rerun()
                     else:
-                        st.error(f"Copilot API Error ({copilot_response.status_code}): {copilot_response.text}")
+                        st.error("Copilot could not prepare a response right now. Please try again.")
                 except Exception as ex:
-                    st.error(f"Failed to communicate with Copilot backend: {str(ex)}")
-
+                    st.error("We could not reach Copilot right now. Please try again.")
